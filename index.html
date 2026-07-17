@@ -231,7 +231,7 @@
             <h2 class="tibia-font text-2xl md:text-3xl text-zinc-100 font-bold flex items-center gap-2">
                 <i class="fa-solid fa-gamepad text-[#f3a63b]"></i> Guia do RubinOT: Configurando o Assistente RTCaster
             </h2>
-            <p class="text-sm text-zinc-400 mt-1">Veja como mapear sua rotação diretamente no painel de configurações do RubinOT.</p>
+            <p class="text-sm text-zinc-400 mt-1">Veja como mapear sua rotação diretamente no painel de configurações do RubinOT. <span class="text-[#f3a63b] font-semibold"><i class="fa-solid fa-triangle-exclamation ml-1"></i> Apenas magias de ataque são exibidas no RTCaster</span> para não travar os cooldowns de buffs/suporte.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -416,6 +416,32 @@
         let badgeIcon = "fa-bullseye";
         let roleExplanation = "Foco em causar dano consistente em uma única criatura.";
 
+        // Se a Wiki diz explicitamente que é suporte/cura, respeita isso primeiro!
+        if (spell.wikiType) {
+            const wt = spell.wikiType.toLowerCase().trim();
+            if (wt.includes('suporte') || wt.includes('support') || wt.includes('buff') || wt.includes('util')) {
+                category = "Suporte / Buff";
+                color = "amber";
+                targetType = "Utilitário";
+                badgeIcon = "fa-shield-halved";
+                roleExplanation = "Aumenta seus atributos, velocidade ou fornece buffs táticos indispensáveis antes do combate.";
+                return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+            }
+            if (wt.includes('cura') || wt.includes('heal') || wt.includes('healing')) {
+                category = "Cura";
+                color = "teal";
+                badgeIcon = "fa-heart";
+                if (name.includes('mass') || name.includes('res') || words.includes('mas')) {
+                    targetType = "Cura em Área";
+                    roleExplanation = "Restaura a vida do usuário e de todos os aliados e summons próximos.";
+                } else {
+                    targetType = "Cura Individual";
+                    roleExplanation = "Magia de sobrevivência rápida para recuperar sua própria vida.";
+                }
+                return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+            }
+        }
+
         if (words.startsWith('exura') || name.includes('heal') || name.includes('mend') || name.includes('cure') || name.includes('recovery')) {
             category = "Cura";
             color = "teal";
@@ -441,8 +467,8 @@
 
         if (vocL.includes('monk')) {
             const builders = ["chained penance", "greater flurry of blows", "flurry of blows", "thousand fist blows", "double jab", "forceful uppercut", "mystic repulse", "lesser mystic repulse", "swift jab"];
-            const spenders = ["sweeping takedown", "spiritual outburst", "balanced brawl", "greater tiger clash", "devastating knockout", "tiger clash"];
-            const aoes = ["chained penance", "greater flurry of blows", "flurry of blows", "sweeping takedown", "spiritual outburst", "balanced brawl"];
+            const spenders = ["sweeping takedown", "spiritual outburst", "greater tiger clash", "devastating knockout", "tiger clash"];
+            const aoes = ["chained penance", "greater flurry of blows", "flurry of blows", "sweeping takedown", "spiritual outburst"];
 
             if (builders.includes(name)) {
                 category = "Gerador (Builder)";
@@ -500,6 +526,17 @@
             let spellsFound = [];
 
             tables.forEach(table => {
+                // Tenta mapear os cabeçalhos para achar a coluna "Tipo"
+                const ths = table.querySelectorAll('tr th');
+                const headers = Array.from(ths).map(th => th.innerText.trim().toLowerCase());
+                let tipoColIdx = -1;
+                for (let idx = 0; idx < headers.length; idx++) {
+                    if (headers[idx].includes('tipo') || headers[idx].includes('type')) {
+                        tipoColIdx = idx;
+                        break;
+                    }
+                }
+
                 const rows = table.querySelectorAll('tr');
                 rows.forEach(row => {
                     const cols = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
@@ -532,12 +569,23 @@
                             mana = manaCol.replace(/mana/gi, '').trim();
                         }
 
+                        let wikiType = '';
+                        if (tipoColIdx !== -1 && cols[tipoColIdx]) {
+                            wikiType = cols[tipoColIdx];
+                        } else if (cols.length >= 8) {
+                            const possibleType = cols[7].toLowerCase();
+                            if (possibleType.includes('suporte') || possibleType.includes('ataque') || possibleType.includes('cura') || possibleType.includes('support') || possibleType.includes('heal')) {
+                                wikiType = cols[7];
+                            }
+                        }
+
                         if (name && words) {
                             spellsFound.push({
                                 name: name,
                                 level: parseInt(level),
                                 words: words,
-                                mana: mana
+                                mana: mana,
+                                wikiType: wikiType
                             });
                         }
                     }
@@ -658,6 +706,13 @@
         slotsContainer.innerHTML = "";
         tableBody.innerHTML = "";
 
+        const voc = document.getElementById('vocName').innerText.trim();
+        // Filtra para exibir apenas magias de ataque (excluindo suporte, buffs e cura)
+        const filteredCombo = combo.filter(spell => {
+            const classInfo = getSpellClassification(spell, voc);
+            return classInfo.category !== "Suporte / Buff" && classInfo.category !== "Cura";
+        });
+
         const syncBadge = document.getElementById('rtcSyncBadge');
         if (syncBadge) {
             syncBadge.innerText = `Sincronizado Lvl ${currentLevel}`;
@@ -672,7 +727,7 @@
         }
 
         for (let i = 0; i < 5; i++) {
-            const spell = combo[i];
+            const spell = filteredCombo[i];
             const div = document.createElement('div');
             div.className = "flex items-center gap-2 bg-[#252629] p-1.5 rounded border border-[#1a1b1c] shadow-inner";
 
@@ -758,8 +813,8 @@
             }
         }
 
-        if (combo.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-zinc-600 italic">Nenhuma magia ativa no combo. Adicione magias para ver as sugestões manuais.</td></tr>`;
+        if (filteredCombo.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-zinc-600 italic">Nenhuma magia de ataque ativa no combo. Adicione magias para ver as sugestões manuais.</td></tr>`;
         }
     }
 
@@ -793,8 +848,8 @@
 
         if (vocL.includes('monk')) {
             const builderArea = ["greater flurry of blows", "chained penance", "thousand fist blows", "flurry of blows"];
-            const builderSolo = ["forceful uppercut", "thousand fist blows", "mystic repulse", "double jab", "swift jab"];
-            const spendersArea = ["balanced brawl", "sweeping takedown", "spiritual outburst"];
+            const builderSolo = ["forceful uppercut", "thousand fist blows", "mystic repulse", "lesser mystic repulse", "double jab", "swift jab"];
+            const spendersArea = ["sweeping takedown", "spiritual outburst"];
             const spendersSolo = ["devastating knockout", "greater tiger clash", "tiger clash"];
             const buffs = ["virtue of harmony", "virtue of justice", "virtue of sustain"];
 
