@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tibia & RubinOT Rotation Planner & Analyst</title>
+    <!-- Tailwind CSS para design gamer premium, estilo dark mode -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0c0e;
+        }
+        .tibia-font {
+            font-family: 'Cinzel', serif;
+        }
+        .mono-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111215;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2c2e35;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f3a63b;
+        }
+        /* Glow effects */
+        .glow-orange {
+            box-shadow: 0 0 15px rgba(243, 166, 59, 0.15);
+        }
+        .glow-active {
+            box-shadow: 0 0 20px rgba(243, 166, 59, 0.35);
+            border-color: #f3a63b !important;
+        }
+
+        /* OTCaster / OTClient Simulation Theme */
+        .ot-panel {
+            background-color: #3b3d42;
+            border: 2px solid #222426;
+            box-shadow: inset 1px 1px 0px #5a5d63, 3px 3px 10px rgba(0,0,0,0.6);
+        }
+        .ot-inner {
+            background-color: #2e3033;
+            border: 1px solid #1c1d1f;
+        }
+        .ot-slot {
+            background-color: #1a1b1c;
+            border: 2px solid #55585f;
+            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .ot-button {
+            background: linear-gradient(to bottom, #4f5259 0%, #35373c 100%);
+            border: 1px solid #1a1b1d;
+            box-shadow: inset 1px 1px 0px #6d717a;
+            color: #dfdfdf;
+            text-shadow: 1px 1px 1px black;
+        }
+        .ot-button:hover {
+            background: linear-gradient(to bottom, #5d616a 0%, #3e4147 100%);
+        }
+        .ot-input {
+            background-color: #161719;
+            border: 1px solid #484a51;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body class="text-gray-200 min-h-screen flex flex-col justify-between">
+
+<div class="container mx-auto px-4 py-8 max-w-7xl flex-grow">
+    <!-- Header -->
+    <header class="text-center mb-8 border-b border-zinc-800 pb-6">
+        <h1 class="tibia-font text-4xl md:text-5xl text-[#f3a63b] font-bold tracking-wider mb-2">Tibia & RubinOT Rotation Planner</h1>
+        <p class="text-zinc-400 text-sm md:text-base">Busque as magias do TibiaWiki, planeje seu combo e configure o assistente RTCaster do RubinOT passo a passo!</p>
+    </header>
+
+    <!-- Barra de Busca e Configurações -->
+    <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow-2xl mb-8">
+        <div class="flex flex-col md:flex-row gap-4 items-center">
+            <div class="flex-1 w-full">
+                <label class="block text-xs text-zinc-500 uppercase tracking-wider font-bold mb-1">Link ou Vocação da Wiki</label>
+                <input type="text" id="wikiUrl" value="https://www.tibiawiki.com.br/wiki/Monk" 
+                       class="w-full bg-[#141519] border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#f3a63b] transition duration-200 text-sm">
+            </div>
+            <div class="w-full md:w-auto pt-5">
+                <button onclick="fetchWikiSpells()" class="w-full md:w-auto bg-[#f3a63b] hover:bg-[#d98c25] text-black font-bold px-8 py-3 rounded-lg transition duration-200 flex items-center justify-center gap-2 text-sm shadow-lg shadow-[#f3a63b]/10">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Carregar Vocação
+                </button>
+            </div>
+        </div>
+        <div id="status" class="text-xs text-[#f3a63b] mt-3 font-semibold italic">Pronto para sincronizar.</div>
+    </div>
+
+    <div class="bg-zinc-900/60 border border-zinc-800/80 p-6 rounded-xl mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Slider de Level -->
+        <div>
+            <div class="flex justify-between items-center mb-3">
+                <label class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Level do Personagem</label>
+                <span class="bg-[#f3a63b]/10 text-[#f3a63b] px-3 py-1 rounded-full text-xs font-bold border border-[#f3a63b]/20" id="levelBadge">Level 200</span>
+            </div>
+            <input type="range" id="charLevel" min="1" max="400" value="200" oninput="updateSimulationSettings()"
+                   class="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#f3a63b]">
+            <div class="flex justify-between text-xs text-zinc-500 mt-2">
+                <span>Lvl 1</span>
+                <span>Lvl 150</span>
+                <span>Lvl 300</span>
+                <span>Lvl 400+</span>
+            </div>
+        </div>
+
+        <!-- Estilo de Caça -->
+        <div>
+            <label class="block text-sm font-bold text-zinc-300 uppercase tracking-wider mb-3">Estilo de Combate / Hunt</label>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="setHuntStyle('Area')" id="btnArea" class="py-3 px-4 rounded-lg font-bold border transition duration-200 text-sm flex items-center justify-center gap-2 bg-[#f3a63b] text-black border-[#f3a63b]">
+                    <i class="fa-solid fa-burst"></i> Dano em Área (Hunt)
+                </button>
+                <button onclick="setHuntStyle('Solo')" id="btnSolo" class="py-3 px-4 rounded-lg font-bold border border-zinc-700 text-zinc-400 hover:border-zinc-500 transition duration-200 text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bullseye"></i> Alvo Único (Boss)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layout Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Lista de Magias Carregadas da Wiki -->
+        <div class="lg:col-span-5 bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-6 flex flex-col h-[750px]">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-zinc-800">
+                <h3 class="tibia-font text-lg text-zinc-100 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-scroll text-[#f3a63b]"></i> Magias de <span id="vocName" class="text-[#f3a63b]">Monk</span>
+                </h3>
+                <span id="activeCount" class="bg-zinc-800 text-zinc-400 text-xs px-2.5 py-1 rounded-md font-semibold">0 Ativas</span>
+            </div>
+            
+            <div class="overflow-y-auto flex-grow space-y-3 pr-2" id="spellsContainer">
+                <div class="text-center py-20 text-zinc-500">
+                    <i class="fa-solid fa-circle-info text-3xl mb-3 block text-zinc-600"></i>
+                    Clique em "Carregar Vocação" para sincronizar com o TibiaWiki.
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Recomendação Inteligente com Análise Tática -->
+            <div class="bg-gradient-to-r from-zinc-900 to-zinc-950 border border-zinc-800 rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute -right-12 -top-12 w-32 h-32 bg-[#f3a63b]/5 rounded-full blur-2xl"></div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="tibia-font text-[#f3a63b] font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-brain"></i> Combo Recomendado para seu Level
+                    </h4>
+                    <span class="bg-[#f3a63b]/10 text-[#f3a63b] text-xs font-bold px-2.5 py-1 rounded-md border border-[#f3a63b]/20 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 bg-[#f3a63b] rounded-full animate-pulse"></span> IA Sugerido
+                    </span>
+                </div>
+                
+                <!-- Timeline do Combo Sugerido -->
+                <div class="bg-black/40 border border-zinc-800 rounded-xl p-4 min-h-[110px] flex items-center overflow-x-auto gap-3 mb-4" id="suggestedComboContainer">
+                    <p class="text-zinc-500 text-xs text-center w-full">Escolha uma classe para visualizar o combo ideal.</p>
+                </div>
+
+                <!-- Painel Explicativo do Combo Dinâmico -->
+                <div class="bg-[#141519] border border-zinc-800/80 rounded-xl p-4 mb-4">
+                    <h5 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-question text-[#f3a63b]"></i> Análise Tática da Rotação
+                    </h5>
+                    <p class="text-xs text-zinc-300 leading-relaxed" id="rotationExplainer">Nenhum data analítico gerado ainda.</p>
+                    
+                    <!-- Linha do Tempo Passo a Passo Explicativa -->
+                    <div id="stepByStepAnalysis" class="mt-4 space-y-3 pt-3 border-t border-zinc-800/60">
+                        <!-- Gerado por JS -->
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center gap-2">
+                    <span class="text-[11px] text-zinc-500"><i class="fa-solid fa-info-circle"></i> Siga a ordem numérica para otimizar os cooldowns.</span>
+                    <button onclick="applySuggestedRotation()" id="btnApplyAuto" class="text-xs bg-[#f3a63b] hover:bg-[#d98c25] text-black font-bold px-4 py-2 rounded-lg transition duration-200">
+                        Aplicar na minha Linha do Tempo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rotação customizada / Linha do tempo de simulação -->
+            <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-6 flex flex-col flex-grow min-h-[250px]">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-zinc-800">
+                    <h3 class="tibia-font text-lg text-zinc-100 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-[#f3a63b]"></i> Sua Linha do Tempo de Combate
+                    </h3>
+                    <button onclick="clearRotation()" class="text-xs text-zinc-400 hover:text-red-400 transition duration-150 font-semibold">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Limpar Rotação
+                    </button>
+                </div>
+
+                <!-- Lista da Rotação Ativa -->
+                <div class="bg-black/30 border border-zinc-800 border-dashed rounded-xl p-4 flex-grow min-h-[120px] flex flex-wrap gap-3 content-start overflow-y-auto" id="rotationTimeline">
+                    <p class="text-zinc-500 text-sm text-center w-full py-12">Monte sua sequência de teclas! Clique no botão "+" das magias à esquerda ou clique em "Aplicar na minha Linha do Tempo" acima.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- GUIA ESPECIAL PARA O RUBINOT RTCASTER -->
+    <div class="mt-12 bg-[#121316] border-2 border-[#f3a63b]/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-[#f3a63b]/5 rounded-full blur-3xl"></div>
+        
+        <div class="border-b border-zinc-800 pb-4 mb-6">
+            <span class="bg-[#f3a63b] text-black font-bold text-xs px-2.5 py-1 rounded-md uppercase tracking-wider mb-2 inline-block">Mecânicas RubinOT</span>
+            <h2 class="tibia-font text-2xl md:text-3xl text-zinc-100 font-bold flex items-center gap-2">
+                <i class="fa-solid fa-gamepad text-[#f3a63b]"></i> Guia do RubinOT: Configurando o Assistente RTCaster
+            </h2>
+            <p class="text-sm text-zinc-400 mt-1">Aprenda a mapear e automatizar suas rotações do Monk no RubinOT utilizando o assistente RTCaster.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Coluna 1: Réplica Interativa do Painel RTCaster em CSS/HTML Puro -->
+            <div class="lg:col-span-7 flex flex-col">
+                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 self-start">
+                    <i class="fa-solid fa-display text-[#f3a63b] mr-1"></i> Painel RTCaster Interativo (Simulação do Jogo)
+                </h3>
+                
+                <!-- Simulador Visual do RTCaster do RubinOT -->
+                <div id="rtcPanel" class="ot-panel p-4 rounded-md text-gray-200 select-none text-xs font-semibold w-full transition-all duration-300">
+                    <!-- Title Bar -->
+                    <div class="flex items-center justify-between border-b border-[#222426] pb-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-600 p-1 rounded text-[10px] text-white">RTC</span>
+                            <span class="text-white tracking-wider font-bold">RTCaster - RubinOT Assistant</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-red-600 border border-red-800 cursor-pointer"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                        <!-- Coluna Interna Esquerda (Perfil e Haste) -->
+                        <div class="md:col-span-4 ot-inner p-3 rounded flex flex-col justify-between min-h-[280px]">
+                            <div class="text-center py-2 border-b border-[#222426] mb-2">
+                                <span class="text-zinc-400 block text-[10px] uppercase">Character Profile</span>
+                                <div class="w-12 h-12 bg-[#1a1b1c] border border-zinc-600 mx-auto rounded-full my-2 flex items-center justify-center overflow-hidden">
+                                    <i class="fa-solid fa-user-ninja text-2xl text-[#f3a63b]"></i>
+                                </div>
+                                <span class="text-[#f3a63b] font-bold" id="characterName">Player Monk</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <!-- Auto Haste Mock -->
+                                <div class="bg-[#1a1b1c] p-2 rounded border border-[#484a51]">
+                                    <div class="flex items-center gap-2 mb-1 text-[11px] text-[#f3a63b]">
+                                        <i class="fa-solid fa-person-running"></i>
+                                        <span>Auto Haste</span>
+                                    </div>
+                                    <label class="flex items-center gap-2 cursor-pointer text-zinc-300 text-[10px]">
+                                        <input type="checkbox" checked class="accent-[#f3a63b]"> Enable
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer text-zinc-300 text-[10px]">
+                                        <input type="checkbox" checked class="accent-[#f3a63b]"> PZ Cast
+                                    </label>
+                                </div>
+
+                                <!-- Others tools -->
+                                <div class="space-y-1 text-[10px] text-zinc-300 bg-[#1a1b1c] p-2 rounded border border-[#484a51]">
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="accent-[#f3a63b]"> Auto Eat Food</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="accent-[#f3a63b]"> Change Gold</label>
+                                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="accent-[#f3a63b]"> Auto Reconnect</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna Interna Direita (Config de Spells Dinâmica) -->
+                        <div class="md:col-span-8 ot-inner p-3 rounded flex flex-col justify-between">
+                            <div>
+                                <span class="text-zinc-400 block text-[10px] uppercase mb-2 border-b border-[#222426] pb-1">Spell Configuration Slots</span>
+                                
+                                <div class="space-y-2" id="simulatedCasterSlots">
+                                    <!-- Preenchido via JS baseado nas magias selecionadas na rotação ativa -->
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-2 border-t border-[#222426] flex justify-between items-center text-[10px]">
+                                <label class="flex items-center gap-2 cursor-pointer text-[#f3a63b]">
+                                    <input type="checkbox" checked class="accent-[#f3a63b]"> Combo in priority order
+                                </label>
+                                <span class="text-zinc-500 italic">Status: <b class="text-green-400">Active</b></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botões inferiores de Export/Import -->
+                    <div class="flex justify-between mt-3 pt-2 border-t border-[#222426]">
+                        <div class="flex gap-2">
+                            <button onclick="exportToClipboard()" class="ot-button text-[10px] px-3 py-1.5 rounded font-bold hover:text-[#f3a63b] transition flex items-center gap-1">
+                                <i class="fa-solid fa-file-export"></i> Export Config
+                            </button>
+                            <button onclick="importConfigPrompt()" class="ot-button text-[10px] px-3 py-1.5 rounded font-bold hover:text-green-400 transition flex items-center gap-1">
+                                <i class="fa-solid fa-file-import"></i> Import Config
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] bg-[#f3a63b]/10 text-[#f3a63b] border border-[#f3a63b]/30 px-2 py-0.5 rounded font-bold" id="rtcSyncBadge">Sincronizado Lvl 200</span>
+                            <span class="text-[9px] text-zinc-400 self-center">RubinOT Client Helper v2.4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna 2: Detalhamento Explicativo e Gerador Automático de Inputs -->
+            <div class="lg:col-span-5 flex flex-col justify-between">
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider"><i class="fa-solid fa-gears text-[#f3a63b] mr-1"></i> Como Usar no RubinOT</h3>
+                    
+                    <div class="bg-[#141519] border border-zinc-800 p-4 rounded-xl space-y-3">
+                        <h4 class="text-xs font-bold text-[#f3a63b] uppercase flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Importação de Config Sem Erro</h4>
+                        <ol class="text-[11px] text-zinc-400 space-y-2 list-decimal pl-4 leading-relaxed">
+                            <li>Ajuste o <b>Level</b> e o <b>Estilo de Caça</b> do seu personagem no topo do site.</li>
+                            <li>O simulador à esquerda vai se preencher automaticamente com os melhores dados.</li>
+                            <li>Clique no botão <b>"Export Config"</b> no simulador do RTCaster ou copie o código da caixa abaixo.</li>
+                            <li>Dentro do RubinOT, abra o painel <b>RTCaster</b>, clique no botão <b>Import</b> e cole o código. Pronto!</li>
+                        </ol>
+                    </div>
+
+                    <!-- Caixa de Export / String JSON -->
+                    <div class="bg-zinc-950/60 border border-zinc-800 p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Código de Importação (String RTCaster)</span>
+                            <button onclick="copyGeneratedString()" class="text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2 py-1 rounded transition">
+                                <i class="fa-solid fa-copy mr-1"></i> Copiar String
+                            </button>
+                        </div>
+                        <textarea id="importStringCode" readonly class="w-full bg-[#111214] text-emerald-400 border border-zinc-800 rounded p-2 text-[10px] font-mono h-[80px] focus:outline-none resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Rodapé -->
+<footer class="text-center py-6 border-t border-zinc-800 text-xs text-zinc-500 mt-8">
+    <p>© 2026 Tibia Rotation Planner. Feito de jogador para jogador. Integração especial para o RubinOT.</p>
+</footer>
+
+<script>
+    let activeSpells = [];
+    let rotation = [];
+    let currentHuntStyle = 'Area'; 
+    let currentLevel = 200;
+    let suggestedCombo = [];
+
+    // Banco de dados tático de porquês e explicações de magias do Tibia/Monk
+    const spellCommentaries = {
+        // Monk Spells
+        "virtue of harmony": "Ative sempre no início! Ele aumenta sua Harmonia base e reembolsa pontos ao usar magias gastadoras, mantendo o combo fluido.",
+        "virtue of justice": "Excelente buff de abertura. Aumenta seu Fist Fighting em até 16% e melhora os atributos do seu time.",
+        "virtue of sustain": "Use defensivamente. Ela aumenta toda a sua cura de monge em até 70% quando você está no estado sereno.",
+        "chained penance": "Seu principal ataque gerador em cadeia. Atinge até 6 alvos à distância, perfeito para juntar Harmonia sem risco.",
+        "greater flurry of blows": "Seu gerador em área mais forte. Use logo após colar na box para encher sua barra de Harmonia.",
+        "flurry of blows": "Gerador de área básico. Use para cobrir turnos de recarga e somar mais pontos de Harmonia.",
+        "double jab": "Ataque rápido de alvo único com quase zero cooldown. Ideal contra bosses ou para finalizar criaturas isoladas.",
+        "forceful uppercut": "Ataque focado com dano massivo. Excelente para focar o monstro mais perigoso da box.",
+        "sweeping takedown": "O melhor gastador (Spender) em área! Consome toda a Harmonia acumulada para varrer o leque de monstros à sua frente.",
+        "spiritual outburst": "Finalizador supremo de área. Causa uma explosão de dano em cadeia em 2 turnos consecutivos.",
+        "devastating knockout": "O maior dano bruto contra alvo único. Use contra bosses para descarregar toda a sua Harmonia de uma vez.",
+        "tiger clash": "Finalizador básico. Perfeito no early game para gastar a Harmonia acumulada contra monstros isolados.",
+        "greater tiger clash": "Evolução do Tiger Clash. Causa alto dano de finalização de alvo único.",
+        "spirit mend": "Sua cura padrão. Cura tanto quanto a cura principal de um Paladin, essencial para manter seu HP estável.",
+        "mass spirit mend": "Cura fantástica em área. Cura você, seus companheiros de equipe e seus summons de uma vez só.",
+        "focus harmony": "Habilidade utilitária que enche instantaneamente sua barra de Harmonia. Use para pular a fase de acúmulo e descarregar outro finalizador.",
+        "focus serenity": "Sua habilidade de sobrevivência definitiva: Zera todos os seus cooldowns e enche a Harmonia. Use em situações de extremo perigo!",
+
+        // Knight Spells (EK)
+        "fierce berserk": "Exori Gran. A magia de ataque em área mais devastadora do Knight. Deve ser sempre sua prioridade número um na box.",
+        "berserk": "Exori. Ataque em área essencial com baixo cooldown para revezar com o Exori Gran.",
+        "groundshaker": "Exori Mas. Ótimo alcance em área para atingir monstros que estão fugindo ou ainda se agrupando.",
+        "front sweep": "Exori Min. Bate forte nos 3 monstros à sua frente. Excelente filler enquanto as outras magias estão em cooldown.",
+        "blood rage": "Utito Tempo. Aumenta absurdamente seu ataque físico. Sempre ative antes de começar o combo de dano!",
+        "brutal strike": "Exori Ico. Dano focado e rápido contra um único alvo. Excelente para bosses e finalizações.",
+        "annihilation": "Exori Gran Ico. O golpe mais forte de alvo único do guerreiro. Perfeito para decapitar monstros prioritários.",
+
+        // Mages (Sorcerer / Druid)
+        "exevo gran mas vis": "Ultimate de área (Rage of the Skies). Limpa a tela inteira com dano de energia. Use no início do pull.",
+        "exevo gran mas flam": "Ultimate de fogo (Hell's Core). Causa um estrago massivo em área. Cuidado com o alto cooldown.",
+        "exevo gran mas frigo": "Ultimate de gelo (Eternal Winter). Excelente controle e dano absurdo em área.",
+        "exevo gran mas tera": "Ultimate de terra (Wrath of Nature). Principal dano em área para Druids contra inimigos vulneráveis.",
+        "exura gran san": "Sua cura mais forte de Paladin (Salvation). Use sempre que sua vida cair abaixo de 60%."
+    };
+
+    // Classifica dinamicamente qualquer magia coletada da Wiki baseado em heurísticas
+    function getSpellClassification(spell, voc) {
+        const name = spell.name.toLowerCase();
+        const words = spell.words.toLowerCase();
+        const vocL = voc.toLowerCase();
+
+        // Definições Padrão de Classificação
+        let category = "Ataque";
+        let targetType = "Alvo Único";
+        let color = "rose"; // Cores baseadas no Tailwind
+        let badgeIcon = "fa-bullseye";
+        let roleExplanation = "Foco em causar dano consistente em uma única criatura.";
+
+        // Heurística para Magias de Cura
+        if (words.startsWith('exura') || name.includes('heal') || name.includes('mend') || name.includes('cure') || name.includes('recovery')) {
+            category = "Cura";
+            color = "teal";
+            badgeIcon = "fa-heart";
+            if (name.includes('mass') || name.includes('res') || words.includes('mas')) {
+                targetType = "Cura em Área";
+                roleExplanation = "Restaura a vida do usuário e de todos os aliados e summons próximos.";
+            } else {
+                targetType = "Cura Individual";
+                roleExplanation = "Magia de sobrevivência rápida para recuperar sua própria vida.";
+            }
+            return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+        }
+
+        // Heurística para Buffs, Utilitários e Haste
+        if (words.startsWith('utito') || words.startsWith('utani') || words.startsWith('utamo') || name.includes('virtue') || name.includes('haste') || name.includes('focus') || name.includes('party')) {
+            category = "Suporte / Buff";
+            color = "amber";
+            targetType = "Utilitário";
+            badgeIcon = "fa-shield-halved";
+            roleExplanation = "Aumenta seus atributos, velocidade ou fornece buffs táticos indispensáveis antes do combate.";
+            return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+        }
+
+        // Heurísticas específicas do Monk (Builders vs Spenders)
+        if (vocL.includes('monk')) {
+            const builders = ["chained penance", "greater flurry of blows", "flurry of blows", "thousand fist blows", "double jab", "forceful uppercut", "mystic repulse", "lesser mystic repulse", "swift jab"];
+            const spenders = ["sweeping takedown", "spiritual outburst", "balanced brawl", "greater tiger clash", "devastating knockout", "tiger clash"];
+            const aoes = ["chained penance", "greater flurry of blows", "flurry of blows", "sweeping takedown", "spiritual outburst", "balanced brawl"];
+
+            if (builders.includes(name)) {
+                category = "Gerador (Builder)";
+                color = "emerald";
+                badgeIcon = "fa-battery-three-quarters";
+                targetType = aoes.includes(name) ? "Dano em Área" : "Alvo Único";
+                roleExplanation = `Ataque do tipo Gerador. Causa dano e **acumula Harmonia** na sua barra de recursos.`;
+            } else if (spenders.includes(name)) {
+                category = "Gastador (Spender)";
+                color = "rose";
+                badgeIcon = "fa-bolt";
+                targetType = aoes.includes(name) ? "Dano em Área" : "Alvo Único";
+                roleExplanation = `Ataque do tipo Gastador. Consome sua Harmonia acumulada para descarregar um **dano devastador**!`;
+            }
+            return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+        }
+
+        const aoeKeywords = ["exevo", "mas", "berserk", "shaker", "storm", "aval", "wave", "fury", "sweep"];
+        const isAoe = aoeKeywords.some(keyword => name.includes(keyword) || words.includes(keyword));
+
+        if (isAoe) {
+            targetType = "Dano em Área";
+            badgeIcon = "fa-burst";
+            roleExplanation = "Atinge múltiplos monstros ao mesmo tempo. Ideal para limpar salas cheias (Hunts/Boxes).";
+        }
+
+        return { category, targetType, color, icon: badgeIcon, explanation: roleExplanation };
+    }
+
+    // Busca dados em tempo real da API do TibiaWiki e trata CORS
+    async function fetchWikiSpells() {
+        const urlInput = document.getElementById('wikiUrl').value.trim();
+        const statusDiv = document.getElementById('status');
+        const container = document.getElementById('spellsContainer');
+        
+        statusDiv.innerText = "Sincronizando com a TibiaWiki...";
+        container.innerHTML = "<div class='text-center py-20 text-zinc-500'><i class='fa-solid fa-spinner animate-spin text-3xl mb-3 text-[#f3a63b] block'></i>Carregando banco de dados...</div>";
+
+        let vocPage = urlInput.split('/').pop();
+        vocPage = vocPage.charAt(0).toUpperCase() + vocPage.slice(1);
+
+        const apiUrl = `https://www.tibiawiki.com.br/api.php?action=parse&page=${vocPage}&prop=text&format=json&origin=*`;
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error("Não foi possível conectar com os servidores da Wiki.");
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error("Página da vocação não encontrada. Verifique se o nome está idêntico ao da Wiki.");
+            }
+
+            const htmlContent = data.parse.text["*"];
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+
+            const tables = tempDiv.querySelectorAll('table');
+            let spellsFound = [];
+
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cols = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+                    
+                    const hasSpellWords = cols.some(text => {
+                        const t = text.toLowerCase();
+                        return t.startsWith('exori') || t.startsWith('exura') || t.startsWith('utito') || t.startsWith('utani') || t.startsWith('utamo') || t.startsWith('exana');
+                    });
+
+                    if (hasSpellWords && cols.length >= 3) {
+                        let level = '1';
+                        let levelIdx = cols.findIndex(text => !isNaN(parseInt(text)) && parseInt(text) > 0 && parseInt(text) < 1000);
+                        if (levelIdx !== -1) {
+                            level = cols[levelIdx];
+                        }
+
+                        let name = cols[0].replace(/\n/g, ' ').trim();
+                        if ((name === '' || name.length < 3) && cols[1]) {
+                            name = cols[1].replace(/\n/g, ' ').trim();
+                        }
+
+                        let words = cols.find(text => {
+                            const t = text.toLowerCase();
+                            return t.startsWith('exori') || t.startsWith('exura') || t.startsWith('utito') || t.startsWith('utani') || t.startsWith('utamo') || t.startsWith('exana');
+                        });
+
+                        let mana = 'N/A';
+                        let manaCol = cols.find(text => text.toLowerCase().includes('mana') || (!isNaN(parseInt(text)) && parseInt(text) > 10 && text !== level));
+                        if (manaCol) {
+                            mana = manaCol.replace(/mana/gi, '').trim();
+                        }
+
+                        if (name && words) {
+                            spellsFound.push({
+                                name: name,
+                                level: parseInt(level),
+                                words: words,
+                                mana: mana
+                            });
+                        }
+                    }
+                });
+            });
+
+            if (spellsFound.length === 0) {
+                throw new Error("Nenhuma tabela estruturada de magias foi identificada nesta página.");
+            }
+
+            const uniqueSpells = [];
+            const seenNames = new Set();
+            for (const spell of spellsFound) {
+                if (!seenNames.has(spell.name)) {
+                    seenNames.add(spell.name);
+                    uniqueSpells.push(spell);
+                }
+            }
+
+            uniqueSpells.sort((a, b) => a.level - b.level);
+            activeSpells = uniqueSpells;
+
+            // Altera o nome do char na simulação do RTCaster
+            document.getElementById('vocName').innerText = decodeURIComponent(vocPage);
+            document.getElementById('characterName').innerText = "Player " + decodeURIComponent(vocPage);
+            statusDiv.innerText = `Sucesso! Sincronizado com ${uniqueSpells.length} magias para a classe: ${decodeURIComponent(vocPage)}.`;
+            
+            updateSimulationSettings();
+
+        } catch (error) {
+            statusDiv.innerText = `Erro de Conexão: ${error.message}`;
+            container.innerHTML = `<div class='text-center py-20 text-red-400'><i class='fa-solid fa-circle-xmark text-3xl mb-3 block'></i>Não conseguimos rastrear esta vocação. Certifique-se de usar links válidos (Ex: Monk, Knight, Druid).</div>`;
+        }
+    }
+
+    // Altera o estilo de hunt entre Área ou Alvo Único
+    function setHuntStyle(style) {
+        currentHuntStyle = style;
+        
+        const btnArea = document.getElementById('btnArea');
+        const btnSolo = document.getElementById('btnSolo');
+
+        if (style === 'Area') {
+            btnArea.className = "py-3 px-4 rounded-lg font-bold border transition duration-200 text-sm flex items-center justify-center gap-2 bg-[#f3a63b] text-black border-[#f3a63b]";
+            btnSolo.className = "py-3 px-4 rounded-lg font-bold border border-zinc-700 text-zinc-400 hover:border-zinc-500 transition duration-200 text-sm flex items-center justify-center gap-2";
+        } else {
+            btnSolo.className = "py-3 px-4 rounded-lg font-bold border transition duration-200 text-sm flex items-center justify-center gap-2 bg-[#f3a63b] text-black border-[#f3a63b]";
+            btnArea.className = "py-3 px-4 rounded-lg font-bold border border-zinc-700 text-zinc-400 hover:border-zinc-500 transition duration-200 text-sm flex items-center justify-center gap-2";
+        }
+
+        updateSimulationSettings();
+    }
+
+    // Executado quando o slider de nível ou estilo de caça é modificado
+    function updateSimulationSettings() {
+        currentLevel = parseInt(document.getElementById('charLevel').value);
+        document.getElementById('levelBadge').innerText = `Level ${currentLevel}`;
+        
+        if (activeSpells.length > 0) {
+            renderSpells();
+            calculateSuggestedCombo();
+        }
+    }
+
+    // Renderiza a lista de magias baseadas no filtro de level e adiciona os badges explicativos
+    function renderSpells() {
+        const container = document.getElementById('spellsContainer');
+        container.innerHTML = "";
+        let activeCount = 0;
+        const voc = document.getElementById('vocName').innerText.trim();
+
+        activeSpells.forEach((spell) => {
+            const isUnlocked = spell.level <= currentLevel;
+            const classInfo = getSpellClassification(spell, voc);
+            const div = document.createElement('div');
+            
+            if (isUnlocked) {
+                activeCount++;
+                div.className = "flex flex-col bg-zinc-900 border border-zinc-800 p-3.5 rounded-lg hover:border-zinc-700 transition duration-150 cursor-pointer group";
+                div.onclick = () => addToRotation(spell);
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-grow pr-4">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-sm text-zinc-100 group-hover:text-[#f3a63b] transition duration-150">${spell.name}</h4>
+                                <span class="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-bold">Lvl ${spell.level}</span>
+                                <span class="text-[9px] bg-${classInfo.color}-950/40 text-${classInfo.color}-400 border border-${classInfo.color}-800/40 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                    <i class="fa-solid ${classInfo.icon}"></i> ${classInfo.category}
+                                </span>
+                                <span class="text-[9px] bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded-full font-semibold">
+                                    ${classInfo.targetType}
+                                </span>
+                            </div>
+                            <p class="text-xs text-zinc-500 mt-2">Fórmula: <code class="text-zinc-400 font-mono">"${spell.words}"</code> | Mana: <span class="text-zinc-400">${spell.mana}</span></p>
+                            <p class="text-[11px] text-zinc-400 italic mt-1 leading-relaxed border-l-2 border-zinc-700 pl-2 bg-black/15 py-1 rounded-r">${classInfo.explanation}</p>
+                        </div>
+                        <span class="bg-[#f3a63b]/10 group-hover:bg-[#f3a63b] text-[#f3a63b] group-hover:text-black w-8 h-8 rounded-full flex items-center justify-center transition duration-150 text-sm font-bold shadow-sm">+</span>
+                    </div>
+                `;
+            } else {
+                div.className = "flex items-center justify-between bg-zinc-950/40 border border-zinc-900/50 p-3.5 rounded-lg opacity-40 select-none cursor-not-allowed";
+                div.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-sm text-zinc-400">${spell.name}</h4>
+                            <span class="text-[10px] bg-zinc-900 text-red-500/80 px-1.5 py-0.5 rounded font-bold">Bloqueada (Lvl ${spell.level})</span>
+                        </div>
+                        <p class="text-xs text-zinc-600 mt-1">Fórmula: "${spell.words}"</p>
+                    </div>
+                    <span class="text-zinc-700 text-xs"><i class="fa-solid fa-lock"></i></span>
+                `;
+            }
+            container.appendChild(div);
+        });
+
+        document.getElementById('activeCount').innerText = `${activeCount} Ativas`;
+    }
+
+    // Desenha as magias recomendadas na réplica interativa do RTCaster do RubinOT
+    function renderSimulatedCasterPanel(combo) {
+        const slotsContainer = document.getElementById('simulatedCasterSlots');
+        slotsContainer.innerHTML = "";
+
+        // Atualiza o indicador de nível no rodapé do painel cinza
+        const syncBadge = document.getElementById('rtcSyncBadge');
+        if (syncBadge) {
+            syncBadge.innerText = `Sincronizado Lvl ${currentLevel}`;
+        }
+
+        // Aplica o efeito visual de flash/glow no painel indicando recálculo
+        const panel = document.getElementById('rtcPanel');
+        if (panel) {
+            panel.classList.add('glow-active');
+            setTimeout(() => {
+                panel.classList.remove('glow-active');
+            }, 500);
+        }
+
+        // O RTCaster tem 5 slots visíveis na tela
+        for (let i = 0; i < 5; i++) {
+            const spell = combo[i];
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-2 bg-[#252629] p-1.5 rounded border border-[#1a1b1c] shadow-inner";
+
+            if (spell) {
+                let defaultCreatures = "1+";
+                let defaultPriority = "1st";
+                let defaultMana = "10%";
+
+                const name = spell.name.toLowerCase();
+                if (name.includes('outburst') || name.includes('sweeping') || name.includes('brawl')) {
+                    defaultCreatures = "3+";
+                    defaultPriority = "1st";
+                    defaultMana = "15%";
+                } else if (name.includes('flurry') || name.includes('penance')) {
+                    defaultCreatures = "2+";
+                    defaultPriority = "2nd";
+                    defaultMana = "10%";
+                } else if (name.includes('virtue') || name.includes('justice') || name.includes('harmony')) {
+                    defaultCreatures = "1+";
+                    defaultPriority = "3rd";
+                    defaultMana = "20%";
+                }
+
+                div.innerHTML = `
+                    <!-- Mini Slot Visual -->
+                    <div class="ot-slot w-8 h-8 rounded flex items-center justify-center text-[10px] text-zinc-400 relative font-bold cursor-pointer">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[#f3a63b]"></i>
+                        <span class="absolute bottom-0 right-0.5 text-[8px] text-white">S${i+1}</span>
+                    </div>
+                    
+                    <!-- Nome da Magia e fórmula -->
+                    <div class="flex-1 min-w-0">
+                        <span class="text-white font-bold block text-[10px] truncate">${spell.name}</span>
+                        <span class="text-zinc-400 text-[8px] block truncate">"${spell.words}"</span>
+                    </div>
+
+                    <!-- Input de Mana -->
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-[8px] text-zinc-400">Mana:</span>
+                        <input type="text" readonly value="${defaultMana}" class="ot-input w-8 text-center text-[9px] rounded font-mono py-0.5">
+                    </div>
+
+                    <!-- Seletor de Criaturas -->
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-[8px] text-zinc-400">Mobs:</span>
+                        <select disabled class="bg-[#161719] border border-[#484a51] text-[9px] text-zinc-300 rounded py-0.5 px-0.5 focus:outline-none">
+                            <option ${defaultCreatures === "1+" ? 'selected' : ''}>1+</option>
+                            <option ${defaultCreatures === "2+" ? 'selected' : ''}>2+</option>
+                            <option ${defaultCreatures === "3+" ? 'selected' : ''}>3+</option>
+                        </select>
+                    </div>
+
+                    <!-- Seletor de Prioridade -->
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-[8px] text-zinc-400">Prio:</span>
+                        <select disabled class="bg-[#161719] border border-[#484a51] text-[9px] text-zinc-300 rounded py-0.5 px-0.5 focus:outline-none">
+                            <option ${defaultPriority === "1st" ? 'selected' : ''}>1st</option>
+                            <option ${defaultPriority === "2nd" ? 'selected' : ''}>2nd</option>
+                            <option ${defaultPriority === "3rd" ? 'selected' : ''}>3rd</option>
+                        </select>
+                    </div>
+                `;
+            } else {
+                // Slot vazio
+                div.innerHTML = `
+                    <div class="ot-slot w-8 h-8 rounded flex items-center justify-center text-[9px] text-zinc-600 font-bold">
+                        Vazio
+                    </div>
+                    <div class="flex-1 text-zinc-500 italic text-[10px] pl-2">Slot não configurado</div>
+                    <span class="text-[8px] text-zinc-600">Nenhum feitiço</span>
+                `;
+            }
+
+            slotsContainer.appendChild(div);
+        }
+
+        // Sincroniza a String de Exportação correspondente ao que está sendo exibido no painel
+        generateRTCasterString(combo);
+    }
+
+    // Gera o código JSON pronto de exportação para colar no RTCaster
+    function generateRTCasterString(combo) {
+        const importField = document.getElementById('importStringCode');
+        if (!importField) return;
+        
+        let configObj = {
+            presetName: "Default-Plan",
+            autoHaste: true,
+            pzCast: true,
+            autoEat: true,
+            changeGold: true,
+            spells: []
+        };
+
+        combo.forEach((spell, idx) => {
+            let defaultCreatures = "1+";
+            let defaultPriority = "1st";
+            let defaultMana = "10%";
+
+            const name = spell.name.toLowerCase();
+            if (name.includes('outburst') || name.includes('sweeping') || name.includes('brawl')) {
+                defaultCreatures = "3+";
+                defaultPriority = "1st";
+                defaultMana = "15%";
+            } else if (name.includes('flurry') || name.includes('penance')) {
+                defaultCreatures = "2+";
+                defaultPriority = "2nd";
+                defaultMana = "10%";
+            } else if (name.includes('virtue') || name.includes('justice') || name.includes('harmony')) {
+                defaultCreatures = "1+";
+                defaultPriority = "3rd";
+                defaultMana = "20%";
+            }
+
+            configObj.spells.push({
+                slot: idx + 1,
+                name: spell.name,
+                words: spell.words,
+                manaPct: defaultMana,
+                creaturesRequired: defaultCreatures,
+                priorityOrder: defaultPriority
+            });
+        });
+
+        // Transforma o objeto de configuração do RubinOT em uma string compactada e atualizada
+        importField.value = JSON.stringify(configObj);
+    }
+
+    // Copia a string de importação para a área de transferência do usuário
+    function copyGeneratedString() {
+        const importField = document.getElementById('importStringCode');
+        importField.select();
+        document.execCommand('copy');
+        alert("Configuração do RTCaster copiada! Agora basta abrir o RTCaster no RubinOT, clicar no botão 'Import' e colar o código!");
+    }
+
+    // Dispara a simulação de exportação no painel do RTCaster virtual
+    function exportToClipboard() {
+        copyGeneratedString();
+    }
+
+    // Dispara a simulação de importação
+    function importConfigPrompt() {
+        const userCode = prompt("Insira aqui o código JSON de configuração do seu RTCaster:");
+        if (userCode) {
+            try {
+                const parsed = JSON.parse(userCode);
+                if (parsed.spells && Array.isArray(parsed.spells)) {
+                    alert("Sucesso! Configuração '" + (parsed.presetName || 'Importada') + "' carregada no assistente!");
+                } else {
+                    alert("Formato inválido! Verifique a integridade do código colado.");
+                }
+            } catch(e) {
+                alert("Código de configuração corrompido ou incompatível.");
+            }
+        }
+    }
+
+    // Função central que gerencia qual conjunto de dados alimenta o RTCaster e a String de Importação
+    // Se o usuário possuir magias na Linha do Tempo Customizada, ela manda na tela. Caso contrário, a sugestão da IA assume.
+    function updateCasterState() {
+        if (rotation.length > 0) {
+            renderSimulatedCasterPanel(rotation);
+        } else {
+            renderSimulatedCasterPanel(suggestedCombo);
+        }
+    }
+
+    // Calcula o combo ideal e gera as explicações táticas detalhadas para o usuário
+    function calculateSuggestedCombo() {
+        const container = document.getElementById('suggestedComboContainer');
+        const explainer = document.getElementById('rotationExplainer');
+        const analysisContainer = document.getElementById('stepByStepAnalysis');
+        
+        container.innerHTML = "";
+        analysisContainer.innerHTML = "";
+
+        const available = activeSpells.filter(s => s.level <= currentLevel);
+        const voc = document.getElementById('vocName').innerText.trim();
+        const vocL = voc.toLowerCase();
+        
+        if (available.length === 0) {
+            container.innerHTML = `<p class="text-zinc-500 text-xs text-center w-full">Nenhuma magia desbloqueada para este nível.</p>`;
+            return;
+        }
+
+        let combo = [];
+        let expText = "";
+
+        // REGRA ESPECIAL: MONK (Mecânica de Builders e Spenders)
+        if (vocL.includes('monk')) {
+            const builderArea = ["greater flurry of blows", "chained penance", "thousand fist blows", "flurry of blows"];
+            const builderSolo = ["forceful uppercut", "thousand fist blows", "mystic repulse", "double jab", "swift jab"];
+            const spendersArea = ["balanced brawl", "sweeping takedown", "spiritual outburst"];
+            const spendersSolo = ["devastating knockout", "greater tiger clash", "tiger clash"];
+            const buffs = ["virtue of harmony", "virtue of justice", "virtue of sustain"];
+
+            // Filtros de magias liberadas com prioridade decrescente de level (mais fortes primeiro!)
+            let myBuilders = available.filter(s => {
+                const nameL = s.name.toLowerCase().trim();
+                return currentHuntStyle === 'Area' ? builderArea.includes(nameL) : builderSolo.includes(nameL);
+            });
+            let mySpenders = available.filter(s => {
+                const nameL = s.name.toLowerCase().trim();
+                return currentHuntStyle === 'Area' ? spendersArea.includes(nameL) : spendersSolo.includes(nameL);
+            });
+            let myBuffs = available.filter(s => {
+                const nameL = s.name.toLowerCase().trim();
+                return buffs.includes(nameL);
+            });
+
+            // Ordena sempre do maior nível (mais forte) para o menor
+            myBuilders.sort((a, b) => b.level - a.level);
+            mySpenders.sort((a, b) => b.level - a.level);
+            myBuffs.sort((a, b) => b.level - a.level);
+
+            // Fallbacks inteligentes se as magias de nível avançado não existirem ainda
+            if (myBuilders.length === 0) {
+                myBuilders = available.filter(s => s.words.includes('pug') || s.words.includes('med'));
+                myBuilders.sort((a, b) => b.level - a.level);
+            }
+            if (mySpenders.length === 0) {
+                mySpenders = available.filter(s => s.words.includes('nia') || s.words.includes('gran mas'));
+                mySpenders.sort((a, b) => b.level - a.level);
+            }
+
+            // Garante uma estrutura de rotação lógica: [Buff] -> [Builder 1] -> [Builder 2] -> [Spender]
+            if (myBuffs.length > 0) combo.push(myBuffs[0]); 
+
+            if (myBuilders.length > 0) combo.push(myBuilders[0]);
+            // Só adiciona o segundo Builder se ele for diferente do primeiro para evitar duplicatas duplicadas
+            if (myBuilders.length > 1) combo.push(myBuilders[1]);
+
+            if (mySpenders.length > 0) combo.push(mySpenders[0]); 
+
+            expText = `Como o <strong>Monk</strong> usa o sistema de <strong>Harmonia</strong>, a rotação ideal consiste em ativar um Buff/Virtude de abertura, carregar a barra usando os ataques <i>Geradores (Builders)</i> e finalizar descarregando todo o recurso em um ataque <i>Gastador (Spender)</i> de alto impacto.`;
+        } 
+        
+        // REGRA ESPECIAL: KNIGHT
+        else if (vocL.includes('knight')) {
+            const areaAttacks = ["Fierce Berserk", "Berserk", "Groundshaker", "Front Sweep"];
+            const singleAttacks = ["Fierce Berserk", "Brutal Strike", "Annihilation", "Front Sweep"];
+            const buffs = ["Blood Rage", "Sharpshooter"];
+
+            let myBuffs = available.filter(s => buffs.some(b => s.name.includes(b) || s.words.includes('utito')));
+            let attacks = available.filter(s => currentHuntStyle === 'Area' ? areaAttacks.some(a => s.name.includes(a)) : singleAttacks.some(a => s.name.includes(a)));
+
+            if (myBuffs.length > 0) combo.push(myBuffs[0]);
+            
+            attacks.sort((a,b) => b.level - a.level);
+            if (attacks.length > 0) combo.push(attacks[0]);
+            if (attacks.length > 1) combo.push(attacks[1]);
+            if (attacks.length > 2) combo.push(attacks[2]);
+
+            expText = `A rotação do <strong>Knight (EK)</strong> gira em torno de ativar o seu buff físico <i>Utito Tempo</i> (para amplificar o dano da arma) e ciclar os seus principais feitiços de ataque na ordem do maior dano para o menor, revezando os tempos de recarga (cooldowns) para nunca ficar em turno morto.`;
+        } 
+        
+        // REGRA GERAL (Paladin / Mages)
+        else {
+            let attacks = available.filter(s => s.words.startsWith('exevo') || s.words.startsWith('exori'));
+            attacks.sort((a,b) => b.level - a.level); 
+
+            if (attacks.length > 0) combo.push(attacks[0]);
+            if (attacks.length > 1) combo.push(attacks[1]);
+            if (attacks.length > 2) combo.push(attacks[2]);
+            if (attacks.length > 3) combo.push(attacks[3]);
+
+            expText = `Para esta vocação, a inteligência intercala suas magias de ataque mais fortes de alto nível (para maximizar o DPS) com magias de menor cooldown e utilitários de suporte correspondentes ao nível selecionado.`;
+        }
+
+        if (combo.length === 0) {
+            combo = available.slice(0, 4);
+            expText = `Exibindo magias sequenciais básicas para personagens de nível inicial.`;
+        }
+
+        suggestedCombo = combo;
+
+        // Renderiza cards da timeline sugerida
+        combo.forEach((spell, idx) => {
+            const card = document.createElement('div');
+            card.className = "flex-shrink-0 bg-zinc-900 border border-zinc-800 p-3 rounded-lg text-center min-w-[120px] shadow-md relative";
+            card.innerHTML = `
+                <div class="absolute -top-2.5 -left-2.5 w-6 h-6 rounded-full bg-[#f3a63b] text-black text-xs font-bold flex items-center justify-center shadow-md">${idx + 1}</div>
+                <h5 class="font-bold text-xs text-zinc-200 mt-1 truncate">${spell.name}</h5>
+                <p class="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">"${spell.words}"</p>
+            `;
+            container.appendChild(card);
+        });
+
+        explainer.innerHTML = expText;
+
+        // Renderiza a explicação detalhada de cada passo na tela
+        combo.forEach((spell, idx) => {
+            const classInfo = getSpellClassification(spell, voc);
+            const lowerName = spell.name.toLowerCase();
+            
+            // Busca explicação tática específica no dicionário ou cria uma genérica inteligente
+            let spellTactic = spellCommentaries[lowerName];
+            if (!spellTactic) {
+                if (classInfo.category === "Cura") {
+                    spellTactic = "Magia crucial de sobrevivência. Use para estabilizar seu life bar e evitar mortes acidentais.";
+                } else if (classInfo.category === "Suporte / Buff") {
+                    spellTactic = "Sua magia de suporte tático. Serve para melhorar suas defesas ou aumentar sua velocidade nas passagens de salas.";
+                } else {
+                    spellTactic = `Ataque direto do tipo ${classInfo.targetType}. Use para desgastar as ondas de criaturas com máxima eficiência tática.`;
+                }
+            }
+
+            const stepCard = document.createElement('div');
+            stepCard.className = "flex items-start gap-3 bg-zinc-950/40 p-2.5 rounded-lg border border-zinc-800/50 hover:border-zinc-700 transition duration-150";
+            stepCard.innerHTML = `
+                <div class="bg-[#f3a63b]/10 text-[#f3a63b] text-xs font-bold w-6 h-6 rounded-md flex items-center justify-center border border-[#f3a63b]/20 flex-shrink-0">
+                    #${idx + 1}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <strong class="text-xs text-zinc-100 font-bold">${spell.name}</strong>
+                        <span class="text-[9px] bg-${classInfo.color}-950/50 text-${classInfo.color}-400 px-1.5 py-0.2 rounded font-semibold border border-${classInfo.color}-800/20">${classInfo.category}</span>
+                    </div>
+                    <p class="text-[11px] text-zinc-400 mt-1 leading-relaxed"><i class="fa-solid fa-circle-play text-[#f3a63b] mr-1 text-[9px]"></i><strong>Objetivo:</strong> ${spellTactic}</p>
+                </div>
+            `;
+            analysisContainer.appendChild(stepCard);
+        });
+
+        // Atualiza os painéis do RTCaster com a prioridade correta
+        updateCasterState();
+    }
+
+    // Aplica o combo calculado diretamente na rotação de simulação do usuário
+    function applySuggestedRotation() {
+        if (suggestedCombo.length === 0) return;
+        rotation = [...suggestedCombo];
+        renderRotation();
+    }
+
+    function addToRotation(spell) {
+        rotation.push(spell);
+        renderRotation();
+    }
+
+    function removeFromRotation(index) {
+        rotation.splice(index, 1);
+        renderRotation();
+    }
+
+    function clearRotation() {
+        rotation = [];
+        renderRotation();
+    }
+
+    function renderRotation() {
+        const timeline = document.getElementById('rotationTimeline');
+        timeline.innerHTML = "";
+
+        if (rotation.length === 0) {
+            timeline.innerHTML = `<p class="text-zinc-500 text-sm text-center w-full py-12">Monte sua sequência de teclas! Clique no botão "+" das magias à esquerda ou clique em "Aplicar na minha Linha do Tempo" acima.</p>`;
+            // Atualiza os painéis para voltarem a refletir a sugestão se a rotação personalizada foi zerada
+            updateCasterState();
+            return;
+        }
+
+        rotation.forEach((spell, index) => {
+            const item = document.createElement('div');
+            item.className = "flex items-center gap-3 bg-zinc-900 border border-zinc-800 pl-4 pr-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-200 shadow-md group hover:border-[#f3a63b]/30 transition duration-150";
+            item.innerHTML = `
+                <span class="text-xs text-zinc-500 font-bold font-mono">${index + 1}.</span>
+                <div>
+                    <span class="text-zinc-100">${spell.name}</span>
+                    <span class="text-[10px] font-mono text-zinc-500 block">"${spell.words}"</span>
+                </div>
+                <span class="remove text-zinc-600 group-hover:text-red-400 cursor-pointer ml-2 text-xs font-bold transition duration-150" onclick="removeFromRotation(${index})">✕</span>
+            `;
+            timeline.appendChild(item);
+        });
+
+        // Sincroniza o RTCaster para exibir em tempo real a rotação manual criada pelo usuário
+        updateCasterState();
+    }
+
+    // Carrega a vocação Monk logo na primeira execução para o usuário não ver a tela em branco
+    window.onload = () => {
+        fetchWikiSpells();
+    }
+</script>
+
+</body>
+</html>
